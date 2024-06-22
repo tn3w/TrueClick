@@ -29,8 +29,6 @@ def create_trueclick_challenge() -> Response:
     :return: A JSON object containing the trueclick challenge.
     """
 
-    sleep(10)
-
     captcha_challenge = trueclick.generate_captcha('ai-dogs')
 
     return jsonify(
