@@ -1,5 +1,4 @@
 import os
-import io
 import gzip
 import json
 import random
@@ -9,7 +8,8 @@ import hashlib
 import threading
 from base64 import b64encode, b64decode
 from typing import Final, Optional, Union
-from PIL import Image, ImageDraw, ImageFilter
+import cv2
+import numpy as np
 
 
 WORK_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -80,62 +80,54 @@ def manipulate_image_bytes(image_data: bytes, is_small: bool = False,
     :return: The bytes of the distorted image.
     """
 
-    img = Image.open(io.BytesIO(image_data))
+    image_array = np.frombuffer(image_data, np.uint8)
+    img = cv2.imdecode(image_array, cv2.IMREAD_COLOR)
+    if img is None:
+        raise ValueError("Image data could not be decoded.")
 
-    width, height = img.size
+    height, width = img.shape[:2]
 
     if hardness > 3:
-        num_dots = random.randint(1, 20) * hardness - 3
+        num_dots = np.random.randint(1, 20) * (hardness - 3)
         for _ in range(num_dots):
-            x, y = random.randint(0, width - 1), random.randint(0, height - 1)
-            color = (random.randint(0, 255), random.randint(0, 255), random.randint(0, 255))
-            img.putpixel((x, y), color)
+            x, y = np.random.randint(0, width), np.random.randint(0, height)
+            color = tuple(np.random.randint(0, 256, size=3))
+            img[y, x] = color
 
-        num_lines = random.randint(1, 20) * hardness - 3
+        num_lines = np.random.randint(1, 20) * (hardness - 3)
         for _ in range(num_lines):
-            start_x, start_y = random.randint(0, width - 1), random.randint(0, height - 1)
-            end_x, end_y = random.randint(0, width - 1), random.randint(0, height - 1)
-            color = (random.randint(0, 255), random.randint(0, 255), random.randint(0, 255))
-            draw = ImageDraw.Draw(img)
-            draw.line((start_x, start_y, end_x, end_y), fill=color, width=1)
+            start_x, start_y = np.random.randint(0, width), np.random.randint(0, height)
+            end_x, end_y = np.random.randint(0, width), np.random.randint(0, height)
+            color = tuple(np.random.randint(0, 256, size=3))
+            cv2.line(img, (start_x, start_y), (end_x, end_y), color, 1)
 
-    x_shifts = [
-        random.randint(-max(2, hardness - 1), max(3, hardness))
-        for _ in range(width * height)
-    ]
-    y_shifts = [
-        random.randint(-max(2, hardness - 1), max(3, hardness))
-        for _ in range(width * height)
-    ]
+    x_shifts = np.random.randint(-max(2, hardness - 1), max(3, hardness), size=(height, width))
+    y_shifts = np.random.randint(-max(2, hardness - 1), max(3, hardness), size=(height, width))
 
-    shifted_img = Image.new('RGB', (width, height))
-    for y in range(height):
-        for x in range(width):
-            new_x = (x + x_shifts[y * width + x]) % width
-            new_y = (y + y_shifts[y * width + x]) % height
-            shifted_img.putpixel((x, y), img.getpixel((new_x, new_y)))
+    map_x, map_y = np.meshgrid(np.arange(width), np.arange(height))
+    map_x = (map_x + x_shifts) % width
+    map_y = (map_y + y_shifts) % height
 
-    shifted_img = shifted_img.convert('HSV')
+    shifted_img = cv2.remap(
+        img, map_x.astype(np.float32),
+        map_y.astype(np.float32), cv2.INTER_LINEAR
+    )
+    shifted_img_hsv = cv2.cvtColor(shifted_img, cv2.COLOR_BGR2HSV)
 
-    saturation_factor = 1 + hardness * 0.02
-    value_factor = 1 - hardness * 0.01
-    h, s, v = shifted_img.split()
+    shifted_img_hsv[..., 1] = np.clip(shifted_img_hsv[..., 1] * (1 + hardness * 0.02), 0, 255)
+    shifted_img_hsv[..., 2] = np.clip(shifted_img_hsv[..., 2] * (1 - hardness * 0.01), 0, 255)
 
-    s = s.point(lambda i: min(255, i * saturation_factor), 'L')
-    v = v.point(lambda i: max(0, i * value_factor), 'L')
-
-    shifted_img = Image.merge('HSV', (h, s, v))
-
-    shifted_img = shifted_img.convert('RGB')
-    shifted_img = shifted_img.filter(ImageFilter.GaussianBlur(radius=hardness * 0.1))
+    shifted_img = cv2.cvtColor(shifted_img_hsv, cv2.COLOR_HSV2BGR)
+    shifted_img = cv2.GaussianBlur(shifted_img, (5, 5), hardness * 0.1)
 
     size = 100 if is_small else 200
-    shifted_img = shifted_img.resize((size, size), Image.LANCZOS)
+    shifted_img = cv2.resize(shifted_img, (size, size), interpolation=cv2.INTER_LANCZOS4)
 
-    output_bytes = io.BytesIO()
-    shifted_img.save(output_bytes, format='WebP')
-    output_bytes.seek(0)
-    return output_bytes.read()
+    _, output_bytes = cv2.imencode('.webp', shifted_img)
+    if not _:
+        raise ValueError("Image encoding failed.")
+
+    return output_bytes.tobytes()
 
 
 file_locks = {}
