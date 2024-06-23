@@ -1,4 +1,3 @@
-from time import sleep
 from flask import Flask, Response, send_file, render_template, jsonify, request
 from trueclick import TrueClick
 
@@ -71,7 +70,7 @@ def verify_trueclick_challenge() -> Response:
     )
 
 
-@app.route('/trueclick.js')
+@app.route('/trueclick-min.js')
 def trueclick_js() -> Response:
     """
     Route for serving the trueclick.js file.
@@ -79,7 +78,7 @@ def trueclick_js() -> Response:
     :return: The trueclick.js file.
     """
 
-    return send_file('ressources/trueclick.js')
+    return send_file('ressources/trueclick-min.js')
 
 
 if __name__ == '__main__':
