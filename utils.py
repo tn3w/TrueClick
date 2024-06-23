@@ -70,7 +70,7 @@ def convert_image_to_base64(image_data: bytes) -> str:
 
 
 def manipulate_image_bytes(image_data: bytes, is_small: bool = False,
-                           hardness: Optional[int] = 1) -> bytes:
+                           hardness: int = 1) -> bytes:
     """
     Manipulates an image represented by bytes to create a distorted version.
 
@@ -80,29 +80,31 @@ def manipulate_image_bytes(image_data: bytes, is_small: bool = False,
     :return: The bytes of the distorted image.
     """
 
-    image_array = np.frombuffer(image_data, np.uint8)
-    img = cv2.imdecode(image_array, cv2.IMREAD_COLOR)
+    img = cv2.imdecode(np.frombuffer(image_data, np.uint8), cv2.IMREAD_COLOR)
     if img is None:
         raise ValueError("Image data could not be decoded.")
 
     height, width = img.shape[:2]
 
     if hardness > 3:
-        num_dots = np.random.randint(1, 20) * (hardness - 3)
-        for _ in range(num_dots):
-            x, y = np.random.randint(0, width), np.random.randint(0, height)
-            color = tuple(np.random.randint(0, 256, size=3))
+        num_dots = np.random.randint(20, 50) * (hardness - 3)
+        dot_coords = np.random.randint(0, [width, height], size=(num_dots, 2))
+        colors = np.random.randint(0, 256, size=(num_dots, 3))
+
+        for (x, y), color in zip(dot_coords, colors):
             img[y, x] = color
 
-        num_lines = np.random.randint(1, 20) * (hardness - 3)
-        for _ in range(num_lines):
-            start_x, start_y = np.random.randint(0, width), np.random.randint(0, height)
-            end_x, end_y = np.random.randint(0, width), np.random.randint(0, height)
-            color = tuple(np.random.randint(0, 256, size=3))
-            cv2.line(img, (start_x, start_y), (end_x, end_y), color, 1)
+        num_lines = np.random.randint(20, 50) * (hardness - 3)
+        start_coords = np.random.randint(0, [width, height], size=(num_lines, 2))
+        end_coords = np.random.randint(0, [width, height], size=(num_lines, 2))
+        colors = np.random.randint(0, 256, size=(num_lines, 3))
 
-    x_shifts = np.random.randint(-max(2, hardness - 1), max(3, hardness), size=(height, width))
-    y_shifts = np.random.randint(-max(2, hardness - 1), max(3, hardness), size=(height, width))
+        for (start, end), color in zip(zip(start_coords, end_coords), colors):
+            cv2.line(img, tuple(start), tuple(end), color.tolist(), 1)
+
+    max_shift = max(3, hardness)
+    x_shifts = np.random.randint(-max(2, hardness - 1), max_shift, size=(height, width))
+    y_shifts = np.random.randint(-max(2, hardness - 1), max_shift, size=(height, width))
 
     map_x, map_y = np.meshgrid(np.arange(width), np.arange(height))
     map_x = (map_x + x_shifts) % width
@@ -114,14 +116,14 @@ def manipulate_image_bytes(image_data: bytes, is_small: bool = False,
     )
     shifted_img_hsv = cv2.cvtColor(shifted_img, cv2.COLOR_BGR2HSV)
 
-    shifted_img_hsv[..., 1] = np.clip(shifted_img_hsv[..., 1] * (1 + hardness * 0.02), 0, 255)
-    shifted_img_hsv[..., 2] = np.clip(shifted_img_hsv[..., 2] * (1 - hardness * 0.01), 0, 255)
+    shifted_img_hsv[..., 1] = np.clip(shifted_img_hsv[..., 1] * (1 + hardness * 0.06), 0, 255)
+    shifted_img_hsv[..., 2] = np.clip(shifted_img_hsv[..., 2] * (1 - hardness * 0.03), 0, 255)
 
     shifted_img = cv2.cvtColor(shifted_img_hsv, cv2.COLOR_HSV2BGR)
     shifted_img = cv2.GaussianBlur(shifted_img, (5, 5), hardness * 0.1)
 
     size = 100 if is_small else 200
-    shifted_img = cv2.resize(shifted_img, (size, size), interpolation=cv2.INTER_LANCZOS4)
+    shifted_img = cv2.resize(shifted_img, (size, size), interpolation=cv2.INTER_LINEAR)
 
     _, output_bytes = cv2.imencode('.webp', shifted_img)
     if not _:
