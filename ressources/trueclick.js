@@ -1346,6 +1346,7 @@ window.onload = function() {
         let trueclick = trueclickBoxes[i];
         let dataLanguage = trueclick.getAttribute('data-lang');
         let dataTheme = trueclick.getAttribute('data-theme');
+        let dataCallback = trueclick.getAttribute('data-callback');
 
         if (dataLanguage == null) {
             dataLanguage = trueclick.getAttribute('data-language');
@@ -1499,6 +1500,14 @@ window.onload = function() {
                             input.name = 'trueclick_response';
                             input.value = challenge.id + challenge.token;
                             form.appendChild(input);
+
+                            canContinue = true;
+                            hideLoading();
+
+                            if (dataCallback != null) {
+                                eval(dataCallback);
+                            }
+                            return;
 
                         } else if (data.status === 'error') {
                             newData = data;
