@@ -1385,6 +1385,12 @@ window.onload = function() {
             svg.style.display = 'block';
         }
 
+        function executeCallback(callbackName) {
+            if (typeof window[callbackName] === 'function') {
+                window[callbackName]();
+            }
+        }
+
         let isVerified = false;
         let newData = null;
         let newError = null;
@@ -1505,7 +1511,7 @@ window.onload = function() {
                             hideLoading();
 
                             if (dataCallback != null) {
-                                eval(dataCallback);
+                                executeCallback(dataCallback);
                             }
                             return;
 
