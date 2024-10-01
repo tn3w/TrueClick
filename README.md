@@ -5,9 +5,29 @@ An open source, GDPR-compliant protection against robots that uses a mixture of 
 
 <br>
 
-> [!CAUTION]
-> This project is still in development. Please report any issues to the project's [GitHub issue tracker](https://github.com/tn3w/TrueClick/issues).
-> Do not use this project in production.
+## 🚀 Installation
+#### Clone the Repository
+```bash
+git clone https://github.com/tn3w/TrueClick
+```
+
+or download the zip [here](https://github.com/tn3w/TrueClick/archive/refs/heads/master.zip).
+
+#### Create Venv
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+```
+
+#### Install Dependencies
+```bash
+pip install -r requirements.txt
+```
+
+#### Run app.py
+```bash
+python3 app.py
+```
 
 ## Known Issues
 ### opencv-python

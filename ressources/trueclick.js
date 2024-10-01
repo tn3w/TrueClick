@@ -986,8 +986,58 @@ function translate(text, toLang) {
     return translations[text][toLang];
 }
 
+const LANGUAGES_3_TO_2 = {
+    'afr': 'af', 'alb': 'sq', 'amh': 'am', 'ara': 'ar', 'arm': 'hy', 'aze': 'az',
+    'eus': 'eu', 'bel': 'be', 'ben': 'bn', 'bos': 'bs', 'bul': 'bg', 'cat': 'ca',
+    'ceb': 'ceb', 'chi': 'zh-cn', 'cht': 'zh-tw', 'cor': 'co', 'hrv': 'hr', 'cze': 'cs',
+    'dan': 'da', 'dut': 'nl', 'eng': 'en', 'epo': 'eo', 'est': 'et', 'fil': 'tl',
+    'fin': 'fi', 'fre': 'fr', 'fry': 'fy', 'glg': 'gl', 'geo': 'ka', 'ger': 'de',
+    'gre': 'el', 'guj': 'gu', 'hat': 'ht', 'hau': 'ha', 'haw': 'haw', 'heb': 'he',
+    'hin': 'hi', 'hmn': 'hmn', 'hun': 'hu', 'ice': 'is', 'ibo': 'ig', 'ind': 'id',
+    'gle': 'ga', 'ita': 'it', 'jpn': 'ja', 'jav': 'jw', 'kan': 'kn', 'kaz': 'kk',
+    'khm': 'km', 'kor': 'ko', 'kur': 'ku', 'kir': 'ky', 'lao': 'lo', 'lat': 'la',
+    'lav': 'lv', 'lit': 'lt', 'ltz': 'lb', 'mac': 'mk', 'mlg': 'mg', 'may': 'ms',
+    'mal': 'ml', 'mlt': 'mt', 'mao': 'mi', 'mar': 'mr', 'mon': 'mn', 'mya': 'my',
+    'nep': 'ne', 'nor': 'no', 'ori': 'or', 'pus': 'ps', 'per': 'fa', 'pol': 'pl',
+    'por': 'pt', 'pan': 'pa', 'rum': 'ro', 'rus': 'ru', 'smo': 'sm', 'gla': 'gd',
+    'srp': 'sr', 'sot': 'st', 'sna': 'sn', 'snd': 'sd', 'sin': 'si', 'slo': 'sk',
+    'slv': 'sl', 'som': 'so', 'spa': 'es', 'sun': 'su', 'swa': 'sw', 'swe': 'sv',
+    'tgk': 'tg', 'tam': 'ta', 'tel': 'te', 'tha': 'th', 'tur': 'tr', 'tuk': 'tk',
+    'ukr': 'uk', 'urd': 'ur', 'uig': 'ug', 'uzb': 'uz', 'vie': 'vi', 'wel': 'cy',
+    'xho': 'xh', 'yid': 'yi', 'yor': 'yo', 'zul': 'zu'
+};
+
+const VALID_LANGUAGES = [
+    'af', 'sq', 'am', 'ar', 'hy', 'az', 'eu', 'be', 'bn', 'bs', 'bg', 'ca', 'ceb',
+    'zh-cn', 'zh-tw', 'co', 'hr', 'cs', 'da', 'nl', 'en', 'eo', 'et', 'tl', 'fi',
+    'fr', 'fy', 'gl', 'ka', 'de', 'el', 'gu', 'ht', 'ha', 'haw', 'he', 'hi', 'hmn',
+    'hu', 'is', 'ig', 'id', 'ga', 'it', 'ja', 'jw', 'kn', 'kk', 'km', 'ko', 'ku',
+    'ky', 'lo', 'la', 'lv', 'lt', 'lb', 'mk', 'mg', 'ms', 'ml', 'mt', 'mi', 'mr',
+    'mn', 'my', 'ne', 'no', 'or', 'ps', 'fa', 'pl', 'pt', 'pa', 'ro', 'ru', 'sm',
+    'gd', 'sr', 'st', 'sn', 'sd', 'si', 'sk', 'sl', 'so', 'es', 'su', 'sw', 'sv',
+    'tg', 'ta', 'te', 'th', 'tr', 'tk', 'uk', 'ur', 'ug', 'uz', 'vi', 'cy', 'xh',
+    'yi', 'yo', 'zu'
+];
+
+function getLanguageCode(code) {
+    if (code.length === 2 && VALID_LANGUAGES.includes(code)) {
+        return code;
+    }
+
+    if (code.length === 3 && LANGUAGES_3_TO_2[code]) {
+        const mappedCode = LANGUAGES_3_TO_2[code];
+
+        if (VALID_LANGUAGES.includes(mappedCode)) {
+            return mappedCode;
+        }
+    }
+
+    return 'en';
+}  
+
+
 function getNearestLanguage() {
-    return navigator.language.split('-')[0];
+    return getLanguageCode(navigator.language.split('-')[0]);
 }
 
 const cssStyleDark = `
@@ -1043,7 +1093,8 @@ const cssStyle = `
         border: 1px solid var(--trueclick-border-color);
         border-radius: 8px;
         background-color: var(--trueclick-bg-color);
-        width: 300px;
+        max-width: 400px;
+        width: auto;
         min-width: 260px;
         padding: 10px;
     }
@@ -1103,11 +1154,11 @@ const cssStyle = `
 
     .trueclick-content .logo-container p {
         font-size: 12px;
-        letter-spacing: 0em;
         color: var(--trueclick-link-color);
         text-align: center;
         width: max-content;
         margin: 0;
+        font-family: sans-serif;
     }
 
     .trueclick-content .logo-container a {

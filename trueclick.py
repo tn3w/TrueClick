@@ -1,3 +1,14 @@
+"""
+trueclick.py
+
+This module implements a TrueClick captcha system, designed to verify user interactions 
+and distinguish between human and automated submissions. It calculates human scores 
+based on user behavior and generates captcha challenges using image datasets.
+
+License:
+Made available under the GPL-3.0 license.
+"""
+
 import os
 import secrets
 from time import time
@@ -5,16 +16,21 @@ import urllib.request
 from typing import Optional, Tuple
 import numpy as np
 from flask import request
-from utils import DATASETS_DIR, CAPTCHAS_FILE_PATH, JSON, PICKLE, Hashing,\
-    get_random_image, convert_image_to_base64, manipulate_image_bytes, generate_random_string
+from common import (
+    DATASETS_DIR, CAPTCHAS_FILE_PATH, PICKLE, Hashing, get_random_image,
+    convert_image_to_base64, manipulate_image_bytes, generate_random_string
+)
 
 
 def calculate_human_score(interaction_data: dict) -> float:
     """
-    Calculate the human score of an interaction data.
+    Calculate the human score based on an interaction data.
 
-    :param interaction_data: The interaction data.
-    :return: The human score.
+    Args:
+        interaction_data (dict): he interaction data.
+
+    Returns:
+        float: The human score.
     """
 
     mouse_movements = interaction_data.get('mouseMovements', [])
@@ -52,6 +68,14 @@ class TrueClick:
 
 
     def __init__(self, dataset_dir: str = DATASETS_DIR, hardness: int = 1) -> None:
+        """
+        Initialize the TrueClick instance.
+
+        Args:
+            dataset_dir (str): The directory where datasets are stored.
+            hardness (int): The hardness level for the captcha.
+        """
+
         self.dataset_dir = dataset_dir
         self.hardness = hardness
         self.loaded_datasets = {}
@@ -61,17 +85,19 @@ class TrueClick:
 
     def _download_datasets(self) -> None:
         """
-        This method downloads the datasets if they haven't already been
-        downloaded.
+        Download the datasets if they haven't already been downloaded.
         """
 
         if not os.path.exists(self.dataset_dir):
             os.mkdir(self.dataset_dir)
 
         for url in [
-            'https://github.com/tn3w/Captcha_Datasets/raw/master/keys.json',
-            'https://github.com/tn3w/Captcha_Datasets/raw/master/animals.json',
-            'https://github.com/tn3w/Captcha_Datasets/raw/master/ai-dogs.json'
+            ("https://raw.githubusercontent.com/tn3w/"
+             "Captcha_Datasets/refs/heads/master/datasets/keys.pkl"),
+            ("https://raw.githubusercontent.com/tn3w/"
+             "Captcha_Datasets/refs/heads/master/datasets/animals.pkl"),
+            ("https://raw.githubusercontent.com/tn3w/"
+             "Captcha_Datasets/refs/heads/master/datasets/ai-dogs.pkl")
             ]:
 
             file_name = url.rsplit('/', maxsplit=1)[-1]
@@ -84,16 +110,19 @@ class TrueClick:
 
     def _load_dataset(self, dataset_path: str) -> dict:
         """
-        Loads a dataset from the specified path.
+        Load a dataset from the specified path.
 
-        :param dataset_path: The path to the dataset.
-        :return: Returns the dataset dict
+        Args:
+            dataset_path (str): The path to the dataset.
+
+        Returns:
+            Dict[str, Any]: The loaded dataset.
         """
 
         if dataset_path in self.loaded_datasets:
             return self.loaded_datasets[dataset_path]
 
-        dataset = JSON.load(dataset_path)
+        dataset = PICKLE.load(dataset_path)
 
         self.loaded_datasets[dataset_path] = dataset
         return dataset
@@ -106,7 +135,10 @@ class TrueClick:
 
     def _load(self) -> dict:
         """
-        Loads the captcha data from the file.
+        Load the captcha data from the file.
+
+        Returns:
+            Dict[str, Any]: The loaded captcha data.
         """
 
         captchas = PICKLE.load(CAPTCHAS_FILE_PATH)
@@ -121,11 +153,13 @@ class TrueClick:
 
     def add_captcha(self, data: dict) -> Tuple[str, str]:
         """
-        Add a captcha to the file
+        Add a captcha to the file.
 
-        :param captcha_id: The id of the captcha
-        :param captcha_token: The token of the captcha
-        :param data: The captcha data
+        Args:
+            data (Dict[str, Any]): The captcha data.
+
+        Returns:
+            Tuple[str, str]: A tuple containing the captcha id and token.
         """
 
         captcha_id = generate_random_string(8, with_punctuation=False)
@@ -150,10 +184,13 @@ class TrueClick:
 
     def captcha_exists(self, captcha_id: str) -> bool:
         """
-        Check if a captcha exists in the file
+        Check if a captcha exists in the file.
 
-        :param captcha_id: The id of the captcha
-        :return: Returns True if the captcha exists, False otherwise
+        Args:
+            captcha_id (str): The id of the captcha.
+
+        Returns:
+            bool: True if the captcha exists, False otherwise.
         """
 
         captchas = self._load()
@@ -162,10 +199,13 @@ class TrueClick:
 
     def get_captcha(self, captcha_id: str) -> Optional[dict]:
         """
-        Get a captcha from the file
+        Get a captcha from the file.
 
-        :param captcha_id: The id of the captcha
-        :return: Returns the captcha data
+        Args:
+            captcha_id (str): The id of the captcha.
+
+        Returns:
+            Optional[Dict[str, Any]]: The captcha data, or None if it doesn't exist.
         """
 
         captchas = self._load()
@@ -174,9 +214,10 @@ class TrueClick:
 
     def remove_captcha(self, captcha_id: str) -> None:
         """
-        Remove a captcha from the file
+        Remove a captcha from the file.
 
-        :param captcha_id: The id of the captcha
+        Args:
+            captcha_id (str): The id of the captcha.
         """
 
         captchas = self._load()
@@ -189,9 +230,10 @@ class TrueClick:
 
     def is_trueclick_valid(self) -> bool:
         """
-        Verify the trueclick captcha based on an flask request
+        Verify the trueclick captcha based on a Flask request.
 
-        :return: Returns True if the captcha is verified, False otherwise
+        Returns:
+            bool: True if the captcha is verified, False otherwise.
         """
 
         data = request.form if request.method.lower() == 'post' else request.args
@@ -210,11 +252,14 @@ class TrueClick:
 
     def is_captcha_verified(self, captcha_id: str, captcha_token: str) -> bool:
         """
-        Verify a captcha
+        Verify a captcha.
 
-        :param captcha_id: The id of the captcha
-        :param captcha_token: The token of the captcha
-        :return: Returns True if the captcha is verified, False otherwise
+        Args:
+            captcha_id (str): The id of the captcha.
+            captcha_token (str): The token of the captcha.
+
+        Returns:
+            bool: True if the captcha is verified, False otherwise.
         """
 
         captcha = self.get_captcha(captcha_id)
@@ -232,11 +277,14 @@ class TrueClick:
 
     def is_captcha_token_valid(self, captcha_id: str, captcha_token: str) -> bool:
         """
-        Verify a captcha
+        Verify a captcha token.
 
-        :param captcha_id: The id of the captcha
-        :param captcha_token: The token of the captcha
-        :return: Returns True if the captcha is verified, False otherwise
+        Args:
+            captcha_id (str): The id of the captcha.
+            captcha_token (str): The token of the captcha.
+
+        Returns:
+            bool: True if the captcha token is valid, False otherwise.
         """
 
         captcha = self.get_captcha(captcha_id)
@@ -249,12 +297,15 @@ class TrueClick:
 
     def verify_captcha(self, captcha_id: str, captcha_token: str, selected_indices: list) -> bool:
         """
-        Verify a captcha
+        Verify a captcha.
 
-        :param captcha_id: The id of the captcha
-        :param captcha_token: The token of the captcha
-        :param selected_indices: The indices of the selected characters
-        :return: Returns True if the captcha is verified, False otherwise
+        Args:
+            captcha_id (str): The id of the captcha.
+            captcha_token (str): The token of the captcha.
+            selected_indices (List[int]): The indices of the selected characters.
+
+        Returns:
+            bool: True if the captcha is verified, False otherwise.
         """
 
         if not self.is_captcha_token_valid(captcha_id, captcha_token):
@@ -282,16 +333,20 @@ class TrueClick:
 
     def generate_captcha(self, dataset_name: str) -> dict:
         """
-        Generate a captcha for the client
+        Generate a captcha for the client.
 
-        :param dataset_name: The name of the dataset to use
-        :return: Returns the captcha bytes
+        Args:
+            dataset_name (str): The name of the dataset to use.
+
+        Returns:
+            Dict[str, Any]: The generated captcha data including id, token,
+                original image, and images list.
         """
 
-        if not dataset_name.endswith('.json'):
-            dataset_name += '.json'
+        if not dataset_name.endswith('.pkl'):
+            dataset_name += '.pkl'
 
-        dataset = self._load_dataset(os.path.join(self.dataset_dir, dataset_name))
+        dataset = self._load_dataset(os.path.join(self.dataset_dir, dataset_name))["keys"]
 
         captcha_data = {}
 
@@ -353,3 +408,7 @@ class TrueClick:
             'original': original_image,
             'images': captcha_images
         }
+
+
+if __name__ == "__main__":
+    print("trueclick.py: This file is not designed to be executed.")
