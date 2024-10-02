@@ -479,10 +479,10 @@ class Hashing:
     """
 
 
-    def __init__(self, salt: Optional[str] = None):
+    def __init__(self, salt: Optional[bytes] = None):
         """
         Args:
-            salt (Optional[str]): The salt, makes the hashing process more secure. Default is None.
+            salt (Optional[bytes]): The salt, makes the hashing process more secure. Default is None.
         """
 
         self.salt = salt
@@ -502,13 +502,10 @@ class Hashing:
 
         salt = self.salt
         if salt is None:
-            salt = secrets.token_hex(hash_length)
-            plain_text = salt + plain_text
+            salt = secrets.token_bytes(hash_length)
 
-        hash_object = hashlib.sha256(plain_text.encode())
-        hex_dig = hash_object.hexdigest()
-
-        return hex_dig + '//' + salt
+        hash_object = hashlib.sha256(salt + plain_text.encode()).digest()
+        return hash_object + b'00' + salt
 
 
     def compare(self, plain_text: str, hash_string: str) -> bool:
@@ -524,14 +521,14 @@ class Hashing:
         """
 
         salt = self.salt
-        if '//' in hash_string:
-            hash_string, salt = hash_string.split('//')
+        if b'00' in hash_string:
+            hash_string, salt = hash_string.split(b'00')
 
         hash_length = len(hash_string)
 
         comparison_hash = Hashing(salt=salt).hash(
             plain_text, hash_length=hash_length
-        ).split('//')[0]
+        ).split(b'00')[0]
 
         return comparison_hash == hash_string
 

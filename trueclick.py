@@ -122,7 +122,7 @@ class TrueClick:
         if dataset_path in self.loaded_datasets:
             return self.loaded_datasets[dataset_path]
 
-        dataset = PICKLE.load(dataset_path)
+        dataset = PICKLE.load(dataset_path, {})
 
         self.loaded_datasets[dataset_path] = dataset
         return dataset
@@ -141,7 +141,7 @@ class TrueClick:
             Dict[str, Any]: The loaded captcha data.
         """
 
-        captchas = PICKLE.load(CAPTCHAS_FILE_PATH)
+        captchas = PICKLE.load(CAPTCHAS_FILE_PATH, default = {})
 
         cleaned_captchas = {}
         for captcha_id, captcha in captchas.items():
@@ -177,7 +177,7 @@ class TrueClick:
         captchas = self._load()
         captchas[captcha_id] = captcha
 
-        PICKLE.dump(captchas, CAPTCHAS_FILE_PATH)
+        PICKLE.dump(CAPTCHAS_FILE_PATH, captchas)
 
         return captcha_id, captcha_token
 
@@ -225,7 +225,7 @@ class TrueClick:
         if captcha_id in captchas:
             del captchas[captcha_id]
 
-            PICKLE.dump(captchas, CAPTCHAS_FILE_PATH)
+            PICKLE.dump(CAPTCHAS_FILE_PATH, captchas)
 
 
     def is_trueclick_valid(self) -> bool:
@@ -322,7 +322,7 @@ class TrueClick:
         captchas = self._load()
         captchas[captcha_id] = captcha
 
-        PICKLE.dump(captchas, CAPTCHAS_FILE_PATH)
+        PICKLE.dump(CAPTCHAS_FILE_PATH, captchas)
 
         return True
 

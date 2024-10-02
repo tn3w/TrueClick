@@ -74,6 +74,7 @@ def verify_trueclick_challenge() -> Response:
 
     if not request.is_json:
         return jsonify({"status": "error", "error": "Invalid request"})
+
     data = request.get_json()
 
     captcha_id, captcha_token = data.get("id"), data.get("token")
