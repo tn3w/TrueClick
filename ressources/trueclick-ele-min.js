@@ -1052,14 +1052,15 @@ const captchaGridItemHTML = `<div class="grid-item"><img src="IMAGESRC"><input n
 
 
 function addStyles(css) {
-    var styleElement = document.querySelector("head style") || document.createElement("style");
-    
+    var styleElement = Array.from(document.querySelectorAll("head style"))
+        .find(el => !el.classList.contains('darkreader')) || document.createElement("style");
+
     if (styleElement.styleSheet) {
-        styleElement.styleSheet.cssText += css;
+        styleElement.styleSheet.cssText += css;  // For IE
     } else {
-        styleElement.appendChild(document.createTextNode(css));
+        styleElement.appendChild(document.createTextNode(css));  // Standard
     }
-    
+
     if (!styleElement.parentNode) {
         document.head.appendChild(styleElement);
     }
@@ -1237,15 +1238,20 @@ document.addEventListener("DOMContentLoaded", function() {
                 }
             });
 
+            let button = overlay.querySelector('.submit-button');
+
             document.addEventListener('keydown', function(event) {
                 if (event.key === 'Escape') {
                     overlay.remove();
                     Array.from(document.body.children).forEach(child => child.classList.remove('trueclick-blur'));
                     removeStyles(styles);
                 }
+
+                if (event.key === "Enter") {
+                    button.click();
+                }
             });
 
-            let button = overlay.querySelector('.submit-button');
             button.addEventListener('click', function() {
                 showLoading();
                 let selected = Array.from(overlay.querySelectorAll('input[type="checkbox"]:checked'));
