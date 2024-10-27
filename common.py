@@ -160,51 +160,6 @@ def manipulate_image_bytes(image_data: bytes, is_small: bool = False,
     return output_bytes.tobytes()
 
 
-def can_read(file_path: str) -> bool:
-    """
-    Checks if a file can be read.
-
-    Args:
-        file_path (str): The name to the file to check.
-
-    Returns:
-        bool: True if the file can be read, False otherwise.    
-    """
-
-    if not os.path.isfile(file_path):
-        return False
-
-    return os.access(file_path, os.R_OK)
-
-
-def can_write(file_path: str, content_size: Optional[int] = None) -> bool:
-    """
-    Checks if a file can be written to.
-
-    Args:
-        file_path (str): The path to the file to check.
-        content_size (Optional[int]): The size of the content to write to the file.
-
-    Returns:
-        bool: True if the file can be written to, False otherwise.    
-    """
-
-    directory_path = os.path.dirname(file_path)
-    if not os.path.isdir(directory_path):
-        return False
-
-    if not os.access(directory_path, os.W_OK):
-        return False
-
-    if content_size is not None:
-        if not os.path.getsize(directory_path)\
-            + content_size <= os.stat(directory_path).st_blksize:
-
-            return False
-
-    return True
-
-
 def is_directory_empty(directory_path: str) -> bool:
     """
     Checks if a directory has any subdirectories.
@@ -241,9 +196,6 @@ def read(file_path: str, as_bytes: bool = False, default: Any = None) -> Any:
         Any: The contents of the file, or the default value if the file does not exist.
     """
 
-    if not can_read(file_path):
-        return default
-
     try:
         with open(file_path, "r" + ("b" if as_bytes else ""),
                   encoding = None if as_bytes else "utf-8") as file:
@@ -268,9 +220,6 @@ def write(file_path: str, content: Any) -> bool:
     Returns:
         bool: True if the file was written successfully, False otherwise.
     """
-
-    if not can_write(file_path, len(content)):
-        return False
 
     try:
         with open(file_path, "w" + ("b" if isinstance(content, bytes) else "")) as file:
@@ -374,9 +323,6 @@ class CachedFile:
         file_data = self._get_cache(file_path)
 
         if file_data is None:
-            if not can_read(file_path):
-                return default
-
             if file_path not in file_locks:
                 file_locks[file_path] = Lock()
 
@@ -409,11 +355,6 @@ class CachedFile:
         Returns:
             bool: True if the data was dumped successfully, False otherwise.
         """
-
-        file_directory = os.path.dirname(file_path)
-
-        if not can_write(file_directory, len(data)):
-            return False
 
         if file_path not in file_locks:
             file_locks[file_path] = Lock()

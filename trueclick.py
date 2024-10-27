@@ -264,7 +264,7 @@ class TrueClick:
 
         captcha = self.get_captcha(captcha_id)
 
-        if not captcha or not Hashing().compare(captcha_token, captcha['htoken']):
+        if not self.is_captcha_token_valid(captcha_token, captcha):
             return False
 
         is_verified = captcha.get('verified', False)
@@ -275,7 +275,8 @@ class TrueClick:
         return is_verified
 
 
-    def is_captcha_token_valid(self, captcha_id: str, captcha_token: str) -> bool:
+    def is_captcha_token_valid(self, captcha_token: str, captcha: Optional[dict] = None,
+                               captcha_id: Optional[str] = None) -> bool:
         """
         Verify a captcha token.
 
@@ -287,9 +288,13 @@ class TrueClick:
             bool: True if the captcha token is valid, False otherwise.
         """
 
-        captcha = self.get_captcha(captcha_id)
+        if captcha is None and captcha_id is not None:
+            captcha = self.get_captcha(captcha_id)
 
-        if not Hashing().compare(captcha_token, captcha['htoken']):
+        if not isinstance(captcha, dict):
+            return
+
+        if not Hashing().compare(captcha_token, captcha.get("htoken", None)):
             return False
 
         return True
@@ -308,10 +313,10 @@ class TrueClick:
             bool: True if the captcha is verified, False otherwise.
         """
 
-        if not self.is_captcha_token_valid(captcha_id, captcha_token):
+        captcha = self.get_captcha(captcha_id)
+        if not self.is_captcha_token_valid(captcha_token, captcha):
             return False
 
-        captcha = self.get_captcha(captcha_id)
         if sorted(selected_indices) != sorted(captcha['data']['correct']):
             self.remove_captcha(captcha_id)
             return False
